@@ -4,7 +4,7 @@ import Debug.Trace
 
 main :: IO ()
 main = do
-  handle <- openFile "input.txt" ReadMode
+  handle <- openFile "example.txt" ReadMode
   contents <- hGetContents handle
   let fileLines = words contents
   let count = countNeighboursFull (findAccessibleRolls fileLines)
@@ -39,29 +39,34 @@ zeRow l
   | l == 1 = [0]
   | otherwise = 0 : zeRow (l - 1)
 
-countNeighboursFull :: [[Int]] -> Int
-countNeighboursFull g
-  | null g = 0
-  | g /= processed = trace ("---\n" ++ show g ++ "\n---\n" ++ show processed ++ "\n#########") (1 + countNeighboursFull (unPad processed))
-  | otherwise = 1
+countNeighboursFull :: [[Int]] -> (Int, Int)
+countNeighboursFull g 
+  | null g = trace (show g ++ "\n0,0") (0, 0)
+  | processedRem /= 0 = trace (show g ++ "\n" ++ show (1+nxt) ++ "," ++ show (processedRem + nxtRem)) (1 + nxt, processedRem + nxtRem)
+  | otherwise = trace (show g ++ "\n" ++ "1," ++ show processedRem) (1, processedRem)
   where
     rows = length g
     cols = length (head g)
     gPadded = [zeRow (cols + 2)] ++ map padRow g ++ [zeRow (cols + 2)]
-    processed = countNeighbours gPadded rows cols
+    (processed, processedRem) = countNeighbours gPadded rows cols
+    (nxt, nxtRem) = countNeighboursFull (unPad processed)
 
-countNeighbours :: [[Int]] -> Int -> Int -> [[Int]]
+countNeighbours :: [[Int]] -> Int -> Int -> ([[Int]], Int)
 countNeighbours g r c
-  | r == 0 = [[0]]
-  | otherwise = countForRow g r c : countNeighbours g (r-1) c
+  | r == 0 = ([[0]], 0)
+  | otherwise = ( cfrTab : cnrTab , cfrRem + cnrRem)
+  where
+    (cfrTab, cfrRem) = countForRow g r c
+    (cnrTab, cnrRem) = countNeighbours g (r-1) c
 
-countForRow :: [[Int]] -> Int -> Int -> [Int]
+countForRow :: [[Int]] -> Int -> Int -> ([Int], Int)
 countForRow g r c
-  | c == 0 = [0]
-  | otherwise = trace (show r ++ "/" ++ show c ++ ":" ++ show nbs ++ "->" ++ show has4nb) (has4nb : countForRow g r (c-1))
+  | c == 0 = ([0], 0)
+  | otherwise = (has4nb : nextCol, removed + nextColRemoved)
   where
     nbs = calc g r c
-    has4nb = check 4 nbs
+    (has4nb, removed) = check 4 nbs
+    (nextCol, nextColRemoved) = countForRow g r (c-1)
 
 calc :: [[Int]] -> Int -> Int -> Int
 calc g r c
@@ -70,11 +75,11 @@ calc g r c
                      + (g !! (r + 1) !! (c - 1)) + (g !! (r + 1) !! c) + (g !! (r + 1) !! (c + 1))
   | otherwise = -1
 
-check :: Int -> Int -> Int
+check :: Int -> Int -> (Int, Int)
 check limit val
-  | val == -1 = 0
-  | val < limit = 0
-  | otherwise = 1
+  | val == -1 = (0, 0)
+  | val < limit = (0, 1)
+  | otherwise = (1, 0)
 
 unPad :: [[Int]] -> [[Int]]
 unPad g = init (tail (unPadLines g))
