@@ -4,7 +4,7 @@ import Debug.Trace
 
 main :: IO ()
 main = do
-  handle <- openFile "example.txt" ReadMode
+  handle <- openFile "input.txt" ReadMode
   contents <- hGetContents handle
   let fileLines = words contents
   let count = countNeighboursFull (findAccessibleRolls fileLines)
@@ -42,18 +42,18 @@ zeRow l
 countNeighboursFull :: [[Int]] -> (Int, Int)
 countNeighboursFull g 
   | null g = trace (show g ++ "\n0,0") (0, 0)
-  | processedRem /= 0 = trace (show g ++ "\n" ++ show (1+nxt) ++ "," ++ show (processedRem + nxtRem)) (1 + nxt, processedRem + nxtRem)
-  | otherwise = trace (show g ++ "\n" ++ "1," ++ show processedRem) (1, processedRem)
+  | processedRem /= 0 =  (1 + nxt, processedRem + nxtRem)
+  | otherwise = (1, processedRem)
   where
     rows = length g
     cols = length (head g)
     gPadded = [zeRow (cols + 2)] ++ map padRow g ++ [zeRow (cols + 2)]
     (processed, processedRem) = countNeighbours gPadded rows cols
-    (nxt, nxtRem) = countNeighboursFull (unPad processed)
+    (nxt, nxtRem) = countNeighboursFull processed
 
 countNeighbours :: [[Int]] -> Int -> Int -> ([[Int]], Int)
 countNeighbours g r c
-  | r == 0 = ([[0]], 0)
+  | r == 1 = ([cfrTab], cfrRem)
   | otherwise = ( cfrTab : cnrTab , cfrRem + cnrRem)
   where
     (cfrTab, cfrRem) = countForRow g r c
@@ -61,7 +61,7 @@ countNeighbours g r c
 
 countForRow :: [[Int]] -> Int -> Int -> ([Int], Int)
 countForRow g r c
-  | c == 0 = ([0], 0)
+  | c == 1 = ([has4nb], removed)
   | otherwise = (has4nb : nextCol, removed + nextColRemoved)
   where
     nbs = calc g r c
